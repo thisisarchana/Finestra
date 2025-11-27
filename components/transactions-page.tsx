@@ -617,3 +617,648 @@ export default function TransactionsPage() {
     </div>
   )
 }
+
+"use client"
+
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Upload, Search, Plus, X, TrendingUp, TrendingDown, AlertCircle, Trash2 } from "lucide-react"
+import { formatRupees } from "@/lib/currency"
+import { getTransactions, addTransaction, clearAllTransactions, type Transaction } from "@/lib/actions/transactions"
+
+type Insights = {
+  totalSpent: number
+  totalIncome: number
+  topCategory: { name: string; amount: number }
+  largestExpense: { name: string; amount: number }
+  averageDaily: number
+  categoryBreakdown: { category: string; amount: number; percentage: number }[]
+  trend: "increasing" | "decreasing" | "stable"
+  savingsRate: number
+}
+
+export default function TransactionsPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
+  const [insights, setInsights] = useState<Insights | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "Food",
+    amount: "",
+    type: "expense" as "expense" | "income",
+    icon: "💰",
+  })
+
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showClearDialog, setShowClearDialog] = useState(false)
+
+  useEffect(() => {
+    async function fetchTransactions() {
+      try {
+        const data = await getTransactions()
+        setTransactions(data)
+      } catch (error) {
+        console.error("[v0] Failed to fetch transactions:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTransactions()
+  }, [])
+
+  const categories = [
+    "all",
+    "Food",
+    "Transport",
+    "Entertainment",
+    "Income",
+    "Shopping",
+    "Bills",
+    "Healthcare",
+    "Education",
+    "Other",
+  ]
+
+  const analyzeTransactions = (txs: Transaction[]) => {
+    const expenses = txs.filter((t) => t.amount < 0)
+    const income = txs.filter((t) => t.amount > 0)
+
+    const totalSpent = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const totalIncome = income.reduce((sum, t) => sum + t.amount, 0)
+
+    const categoryTotals: Record<string, number> = {}
+    expenses.forEach((t) => {
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + Math.abs(t.amount)
+    })
+
+    const categoryBreakdown = Object.entries(categoryTotals)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: (amount / totalSpent) * 100,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+
+    const topCategory = categoryBreakdown[0] || { name: "N/A", amount: 0 }
+
+    const largestExpense = expenses.reduce(
+      (max, t) => (Math.abs(t.amount) > max.amount ? { name: t.name, amount: Math.abs(t.amount) } : max),
+      { name: "N/A", amount: 0 },
+    )
+
+    const dates = txs.map((t) => new Date(t.date).getTime())
+    const daysDiff = Math.max(1, Math.ceil((Math.max(...dates) - Math.min(...dates)) / (1000 * 60 * 60 * 24)))
+    const averageDaily = totalSpent / daysDiff
+
+    const sortedTxs = [...expenses].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const midpoint = Math.floor(sortedTxs.length / 2)
+    const firstHalfSpending =
+      sortedTxs.slice(0, midpoint).reduce((sum, t) => sum + Math.abs(t.amount), 0) / Math.max(1, midpoint)
+    const secondHalfSpending =
+      sortedTxs.slice(midpoint).reduce((sum, t) => sum + Math.abs(t.amount), 0) /
+      Math.max(1, sortedTxs.length - midpoint)
+
+    let trend: "increasing" | "decreasing" | "stable" = "stable"
+    if (secondHalfSpending > firstHalfSpending * 1.1) trend = "increasing"
+    else if (secondHalfSpending < firstHalfSpending * 0.9) trend = "decreasing"
+
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalSpent) / totalIncome) * 100 : 0
+
+    return {
+      totalSpent,
+      totalIncome,
+      topCategory: { name: topCategory.category, amount: topCategory.amount },
+      largestExpense,
+      averageDaily,
+      categoryBreakdown,
+      trend,
+      savingsRate,
+    }
+  }
+
+  const formatDate = (dateStr: string) => {
+    // Simplify date formatting, no longer need complex logic for current month
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return new Date().toISOString().split("T")[0]
+    return date.toISOString().split("T")[0]
+  }
+
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      Food: "🍔",
+      Transport: "🚗",
+      Entertainment: "🎬",
+      Income: "💰",
+      Shopping: "🛍️",
+      Bills: "📄",
+      Healthcare: "🏥",
+      Education: "📚",
+      Other: "💳",
+    }
+    return icons[category] || "💰"
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const lines = text.split("\n").filter((line) => line.trim())
+
+      if (lines.length < 2) {
+        alert("CSV file must have a header row and at least one data row")
+        return
+      }
+
+      const headers = lines[0]
+        .toLowerCase()
+        .split(",")
+        .map((h) => h.trim())
+      const dateIndex = headers.findIndex((h) => h.includes("date"))
+      const nameIndex = headers.findIndex(
+        (h) => h.includes("name") || h.includes("description") || h.includes("merchant"),
+      )
+      const amountIndex = headers.findIndex((h) => h.includes("amount") || h.includes("price") || h.includes("total"))
+      const categoryIndex = headers.findIndex((h) => h.includes("category") || h.includes("type"))
+
+      if (dateIndex === -1 || nameIndex === -1 || amountIndex === -1) {
+        alert(
+          `CSV must contain columns for date, name/description, and amount.\n\nFound headers: ${headers.join(", ")}`,
+        )
+        return
+      }
+
+      const newTransactions: Transaction[] = []
+      let successCount = 0
+      let errorCount = 0
+
+      for (let i = 1; i < lines.length; i++) {
+        try {
+          const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""))
+
+          if (values.length < 3) {
+            errorCount++
+            continue
+          }
+
+          const amountStr = values[amountIndex].replace(/[^0-9.-]/g, "")
+          const amount = Number.parseFloat(amountStr)
+
+          if (isNaN(amount)) {
+            errorCount++
+            continue
+          }
+
+          const category = categoryIndex !== -1 && values[categoryIndex] ? values[categoryIndex].trim() : "Other"
+          const icon = getCategoryIcon(category)
+
+          const tx = await addTransaction({
+            date: formatDate(values[dateIndex].trim()),
+            name: values[nameIndex].trim() || "Unknown Transaction",
+            category: category,
+            amount: amount,
+            icon: icon,
+          })
+          newTransactions.push(tx)
+          successCount++
+        } catch (err) {
+          console.error(`[v0] Error processing line ${i}:`, err)
+          errorCount++
+        }
+      }
+
+      if (newTransactions.length === 0) {
+        alert("No valid transactions found in CSV file")
+        return
+      }
+
+      const updatedTransactions = [...newTransactions, ...transactions]
+      setTransactions(updatedTransactions)
+
+      const newInsights = analyzeTransactions(updatedTransactions)
+      setInsights(newInsights)
+      setShowInsights(true)
+
+      alert(
+        `Successfully imported ${successCount} transactions!${errorCount > 0 ? ` (${errorCount} rows skipped)` : ""}`,
+      )
+    } catch (error) {
+      console.error("[v0] Error during file upload:", error)
+      alert(`Error processing CSV file: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const categoryIcons: Record<string, string> = {
+    Food: "🍔",
+    Transport: "🚗",
+    Entertainment: "🎬",
+    Income: "💰",
+    Shopping: "🛍️",
+    Bills: "📄",
+    Healthcare: "🏥",
+    Education: "📚",
+    Other: "💳",
+  }
+
+  const handleAddTransaction = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const amount = Number.parseFloat(formData.amount)
+    if (isNaN(amount) || amount <= 0) return
+
+    try {
+      const tx = await addTransaction({
+        date: new Date().toISOString().split("T")[0],
+        name: formData.name,
+        category: formData.category,
+        amount: formData.type === "expense" ? -amount : amount,
+        icon: formData.icon,
+      })
+
+      setTransactions([tx, ...transactions])
+      setIsModalOpen(false)
+      setFormData({
+        name: "",
+        category: "Food",
+        amount: "",
+        type: "expense",
+        icon: "💰",
+      })
+    } catch (error) {
+      console.error("[v0] Failed to add transaction:", error)
+      alert("Failed to add transaction. Please try again.")
+    }
+  }
+
+  const handleClearAll = async () => {
+    try {
+      await clearAllTransactions()
+      setTransactions([])
+      setShowClearDialog(false)
+      setShowInsights(false)
+      setInsights(null)
+    } catch (error) {
+      console.error("[v0] Failed to clear transactions:", error)
+      alert("Failed to clear transactions. Please try again.")
+    }
+  }
+
+  const filteredTransactions = transactions.filter((tx) => {
+    const matchesSearch = tx.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || tx.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#caf0f8] via-[#90e0ef] to-[#00b4d8] flex items-center justify-center p-6">
+        <div className="text-gray-800 text-xl">Loading transactions...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#caf0f8] via-[#90e0ef] to-[#00b4d8] p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-black text-gray-800">Transactions</h1>
+            <p className="text-gray-600 mt-2">Manage and track all your transactions in one place</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:shadow-lg transition-shadow"
+            >
+              <Upload className="w-5 h-5" />
+              Import CSV
+            </Button>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-gradient-to-r from-[#00b4d8] to-[#0077b6] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:shadow-lg transition-shadow"
+            >
+              <Plus className="w-5 h-5" />
+              Add Transaction
+            </Button>
+          </div>
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          <div className="lg:col-span-1 space-y-4">
+            <Card className="bg-white border-2 border-[#00b4d8] rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <Search className="w-5 h-5 text-[#0077b6]" />
+                <h3 className="font-bold text-gray-800">Search</h3>
+              </div>
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[#00b4d8] focus:outline-none"
+              />
+            </Card>
+
+            <Card className="bg-white border-2 border-[#00b4d8] rounded-2xl p-6 shadow-lg">
+              <h3 className="font-bold text-gray-800 mb-4">Filter by Category</h3>
+              <div className="space-y-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`w-full text-left px-4 py-2 rounded-lg font-medium transition-colors ${
+                      selectedCategory === cat
+                        ? "bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat === "all" ? "All Categories" : cat}
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {transactions.length > 0 && (
+              <Card className="bg-white border-2 border-red-200 rounded-2xl p-6 shadow-lg">
+                <div className="text-center">
+                  <Trash2 className="w-8 h-8 text-red-500 mx-auto mb-3" />
+                  <h3 className="font-bold text-gray-800 mb-2">Clear All Data</h3>
+                  <p className="text-sm text-gray-600 mb-4">Remove all transactions</p>
+                  <Button
+                    onClick={() => setShowClearDialog(true)}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+
+          <div className="lg:col-span-3 space-y-6">
+            {transactions.length === 0 ? (
+              <Card className="bg-gradient-to-br from-white to-[#caf0f8] border-2 border-[#00b4d8] rounded-2xl p-12 text-center shadow-lg">
+                <div className="text-6xl mb-4">💰</div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">No transactions yet!</h3>
+                <p className="text-gray-600 mb-6">Start by adding your first transaction or importing from CSV</p>
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white px-6 py-3 rounded-full font-bold"
+                  >
+                    Add Transaction
+                  </Button>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-gradient-to-r from-[#00b4d8] to-[#90e0ef] text-white px-6 py-3 rounded-full font-bold"
+                  >
+                    Import CSV
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <>
+                {showInsights && insights && (
+                  <Card className="bg-gradient-to-br from-[#0077b6] to-[#00b4d8] border-0 rounded-2xl p-8 text-white shadow-xl">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="w-8 h-8" />
+                        <h3 className="text-2xl font-black">Financial Insights</h3>
+                      </div>
+                      <button onClick={() => setShowInsights(false)} className="hover:bg-white/20 p-2 rounded-lg">
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Total Spent</p>
+                        <p className="text-2xl font-black">{formatRupees(insights.totalSpent)}</p>
+                      </div>
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Total Income</p>
+                        <p className="text-2xl font-black">{formatRupees(insights.totalIncome)}</p>
+                      </div>
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Savings Rate</p>
+                        <p className="text-2xl font-black">{insights.savingsRate.toFixed(1)}%</p>
+                      </div>
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Top Category</p>
+                        <p className="text-lg font-black">{insights.topCategory.name}</p>
+                        <p className="text-sm opacity-90">{formatRupees(insights.topCategory.amount)}</p>
+                      </div>
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Largest Expense</p>
+                        <p className="text-lg font-black">{insights.largestExpense.name}</p>
+                        <p className="text-sm opacity-90">{formatRupees(insights.largestExpense.amount)}</p>
+                      </div>
+                      <div className="bg-white/20 rounded-xl p-4">
+                        <p className="text-sm opacity-90 mb-1">Average Daily</p>
+                        <p className="text-2xl font-black">{formatRupees(insights.averageDaily)}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/20 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        {insights.trend === "increasing" && <TrendingUp className="w-5 h-5" />}
+                        {insights.trend === "decreasing" && <TrendingDown className="w-5 h-5" />}
+                        <p className="font-bold">
+                          Spending Trend:{" "}
+                          <span className="capitalize">
+                            {insights.trend === "increasing"
+                              ? "Increasing"
+                              : insights.trend === "decreasing"
+                                ? "Decreasing"
+                                : "Stable"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        {insights.categoryBreakdown.slice(0, 5).map((cat) => (
+                          <div key={cat.category} className="flex items-center justify-between">
+                            <span className="text-sm">{cat.category}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-32 h-2 bg-white/30 rounded-full overflow-hidden">
+                                <div className="h-full bg-white" style={{ width: `${cat.percentage}%` }}></div>
+                              </div>
+                              <span className="text-sm font-bold w-16 text-right">{cat.percentage.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                <div className="space-y-4">
+                  {filteredTransactions.map((tx) => (
+                    <Card
+                      key={tx.id}
+                      className={`bg-white border-2 rounded-2xl p-6 shadow-md hover:shadow-lg transition-all flex items-center justify-between ${
+                        tx.amount > 0
+                          ? "border-green-200 hover:border-green-400"
+                          : "border-[#00b4d8] hover:border-[#0077b6]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-14 h-14 bg-gradient-to-br from-[#90e0ef] to-[#caf0f8] rounded-xl flex items-center justify-center text-2xl border-2 border-[#00b4d8]">
+                          {tx.icon}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-800">{tx.name}</p>
+                          <div className="flex gap-3 text-sm text-gray-600">
+                            <span>{new Date(tx.date).toLocaleDateString()}</span>
+                            <span className="px-3 py-1 bg-gray-100 rounded-full font-medium">{tx.category}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className={`text-2xl font-black ${tx.amount > 0 ? "text-green-600" : "text-gray-800"}`}>
+                        {tx.amount > 0 ? "+" : ""} {formatRupees(Math.abs(tx.amount))}
+                      </p>
+                    </Card>
+                  ))}
+
+                  {filteredTransactions.length === 0 && (
+                    <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 rounded-2xl p-12 text-center">
+                      <p className="text-5xl mb-4">💰</p>
+                      <p className="text-2xl font-bold text-gray-800 mb-3">No transactions found</p>
+                      <p className="text-gray-600 mb-6">Try adjusting your search filters</p>
+                    </Card>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Add Transaction Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
+            <Card className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-black text-gray-800">Add Transaction</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleAddTransaction} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Transaction Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[#00b4d8] focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value, icon: categoryIcons[e.target.value] })
+                    }
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[#00b4d8] focus:outline-none"
+                  >
+                    {categories
+                      .filter((c) => c !== "all")
+                      .map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Amount</label>
+                  <input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-[#00b4d8] focus:outline-none"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: "expense" })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold ${
+                        formData.type === "expense"
+                          ? "bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      Expense
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: "income" })}
+                      className={`flex-1 py-2 px-4 rounded-lg font-bold ${
+                        formData.type === "income"
+                          ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      Income
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#0077b6] to-[#00b4d8] text-white font-bold py-3 rounded-lg hover:shadow-lg transition-shadow"
+                >
+                  Add Transaction
+                </Button>
+              </form>
+            </Card>
+          </div>
+        )}
+
+        {/* Clear Dialog */}
+        {showClearDialog && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6">
+            <Card className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-800 mb-3">Clear All Transactions?</h3>
+                <p className="text-gray-600 mb-6">
+                  This action cannot be undone. All your transactions will be permanently deleted.
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowClearDialog(false)}
+                    className="flex-1 bg-gray-200 text-gray-700 font-bold hover:bg-gray-300"
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleClearAll} className="flex-1 bg-red-500 text-white font-bold hover:bg-red-600">
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
