@@ -1,0 +1,50 @@
+{
+  "node": {
+    "0091ab57ff5604234148cfe7d627f1de3759769e90": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/transactions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "getTransactions",
+          "filename": "lib/actions/transactions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "getTransactions",
+      "filename": "lib/actions/transactions.ts"
+    },
+    "407b0428c76a2e909909191372571a88e783bf7451": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/transactions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "addTransaction",
+          "filename": "lib/actions/transactions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "addTransaction",
+      "filename": "lib/actions/transactions.ts"
+    },
+    "00324933149c8d435faaae1825f53e401de7cb0e2d": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/lib/actions/transactions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "clearAllTransactions",
+          "filename": "lib/actions/transactions.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "exportedName": "clearAllTransactions",
+      "filename": "lib/actions/transactions.ts"
+    }
+  },
+  "edge": {}
+}

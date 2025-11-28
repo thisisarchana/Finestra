@@ -1,0 +1,39 @@
+{
+  "sorted_middleware": [],
+  "middleware": {
+    "/": {
+      "files": [
+        "server/edge/chunks/_98113f69._.js",
+        "server/edge/chunks/node_modules_@opentelemetry_api_build_esm_4557a825._.js",
+        "server/edge/chunks/node_modules_@supabase_storage-js_dist_module_2fe79818._.js",
+        "server/edge/chunks/node_modules_@supabase_auth-js_dist_module_33c852e9._.js",
+        "server/edge/chunks/node_modules_97d3f57c._.js",
+        "server/edge/chunks/[root-of-the-server]__4e4490ab._.js",
+        "server/edge/chunks/turbopack-edge-wrapper_c4a5f3a8.js"
+      ],
+      "name": "middleware",
+      "page": "/",
+      "matchers": [
+        {
+          "regexp": "/:nextData(_next/data/[^/]{1,})?/auth/:path*{(\\\\.json)}?",
+          "originalSource": "/auth/:path*"
+        },
+        {
+          "regexp": "/:nextData(_next/data/[^/]{1,})?/dashboard/:path*{(\\\\.json)}?",
+          "originalSource": "/dashboard/:path*"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "LynF2RUiaRPGx4CoAo2oKvtnN1FKkONs9W8F0ih/iQE=",
+        "__NEXT_PREVIEW_MODE_ID": "dd88257680915c39546972bc1d1990ff",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "f3aa6a5153b357ced0cb2bd8a338ca1b1ba3ebbb9b39fc1431947a507f6eca4b",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "bffa6da49fdc6dd80b5ba49ace7aadd6f901692d6b84ab4b5d192bf2041a83dc"
+      }
+    }
+  },
+  "instrumentation": null,
+  "functions": {}
+}
