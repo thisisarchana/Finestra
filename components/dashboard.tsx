@@ -18,13 +18,7 @@ import {
 import { ArrowUpRight, ArrowDownLeft, Zap, Trash2 } from "lucide-react"
 import Mascot from "@/components/mascot"
 import { formatRupees } from "@/lib/currency"
-<<<<<<< HEAD
 import { useTransactions } from "@/lib/transaction-context"
-=======
-import { getTransactions, type Transaction } from "@/lib/actions/transactions"
-import { getSubscriptions, deleteSubscription, type Subscription } from "@/lib/actions/subscriptions"
-import { getUserSettings } from "@/lib/actions/user-settings"
->>>>>>> 1653d24 (final)
 
 const getRelativeTime = (dateStr: string) => {
   const date = new Date(dateStr)
@@ -40,7 +34,6 @@ const getRelativeTime = (dateStr: string) => {
 }
 
 const CATEGORY_COLORS = [
-<<<<<<< HEAD
   "#ff6b6b", // Vibrant red
   "#4ecdc4", // Turquoise
   "#45b7d1", // Sky blue
@@ -53,25 +46,10 @@ const CATEGORY_COLORS = [
   "#54a0ff", // Blue
   "#48dbfb", // Light blue
   "#ff6348", // Tomato red
-=======
-  "#0F4C81", // Pantone Classic Blue
-  "#91A8D0", // Pantone Serenity
-  "#FFBE98", // Pantone Peach Fuzz
-  "#2E3A4B", // Pantone Navy Blazer
-  "#6B9AC4", // Light Classic Blue
-  "#FFA07A", // Light Coral
-  "#4A7BA7", // Mid Blue
-  "#B8CAE0", // Pale Serenity
-  "#FFD4B8", // Pale Peach
-  "#1E2A38", // Deep Navy
-  "#87CEEB", // Sky Blue
-  "#FFB380", // Soft Peach
->>>>>>> 1653d24 (final)
 ]
 
 export default function Dashboard() {
   const [timeframe, setTimeframe] = useState<"daily" | "weekly" | "monthly">("monthly")
-<<<<<<< HEAD
   const { transactions, monthlyBudget, subscriptions, removeSubscription } = useTransactions()
 
   useEffect(() => {
@@ -93,52 +71,6 @@ export default function Dashboard() {
 
     console.log("[v0] Dashboard - Current month transactions:", currentMonthTransactions.length)
 
-=======
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [monthlyBudget, setMonthlyBudget] = useState(0)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [txData, subData, settingsData] = await Promise.all([
-          getTransactions(),
-          getSubscriptions(),
-          getUserSettings(),
-        ])
-        setTransactions(txData)
-        setSubscriptions(subData)
-        setMonthlyBudget(settingsData?.monthly_budget || 0)
-      } catch (error) {
-        console.error("[v0] Failed to fetch dashboard data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [])
-
-  const handleRemoveSubscription = async (id: string) => {
-    try {
-      await deleteSubscription(id)
-      setSubscriptions(subscriptions.filter((s) => s.id !== id))
-    } catch (error) {
-      console.error("[v0] Failed to delete subscription:", error)
-    }
-  }
-
-  const stats = useMemo(() => {
-    const now = new Date()
-    const thirtyDaysAgo = new Date(now)
-    thirtyDaysAgo.setDate(now.getDate() - 30)
-
-    const currentMonthTransactions = transactions.filter((t) => {
-      const txDate = new Date(t.date)
-      return txDate >= thirtyDaysAgo && txDate <= now
-    })
-
->>>>>>> 1653d24 (final)
     const expenses = currentMonthTransactions.filter((t) => t.amount < 0)
     const income = currentMonthTransactions.filter((t) => t.amount > 0)
 
@@ -157,23 +89,12 @@ export default function Dashboard() {
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
     const weeklyExpenses = expenses
-<<<<<<< HEAD
       .filter((t) => new Date(t.date) >= getDaysAgo(7))
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
     const monthlyExpenses = totalExpenses // Already filtered to current month
 
     // Category breakdown for pie chart with dynamic colors
-=======
-      .filter((t) => {
-        const txDate = new Date(t.date)
-        return txDate >= getDaysAgo(7)
-      })
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-
-    const monthlyExpenses = totalExpenses
-
->>>>>>> 1653d24 (final)
     const categoryTotals: Record<string, number> = {}
     expenses.forEach((t) => {
       if (t.category !== "Income") {
@@ -189,10 +110,7 @@ export default function Dashboard() {
       }))
       .sort((a, b) => b.value - a.value)
 
-<<<<<<< HEAD
     // Weekly trend data
-=======
->>>>>>> 1653d24 (final)
     const weeklyData = Array.from({ length: 4 }, (_, i) => {
       const weekStart = new Date(now)
       weekStart.setDate(now.getDate() - (3 - i) * 7)
@@ -218,10 +136,7 @@ export default function Dashboard() {
       monthly: { total: monthlyBudget, spent: monthlyExpenses, remaining: monthlyBudget - monthlyExpenses },
     }
 
-<<<<<<< HEAD
     // Recent transactions (top 4)
-=======
->>>>>>> 1653d24 (final)
     const recentTransactions = [...currentMonthTransactions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 4)
@@ -249,43 +164,20 @@ export default function Dashboard() {
   const spendPercentage = Math.min((currentBudget.spent / currentBudget.total) * 100, 100)
   const savingsPercentage = stats.totalIncome > 0 ? (stats.savings / stats.totalIncome) * 100 : 0
 
-<<<<<<< HEAD
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 dark">
-=======
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-black text-xl">Loading dashboard...</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-white p-6">
->>>>>>> 1653d24 (final)
       <div className="max-w-7xl mx-auto">
         {/* Header with Mascot */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
           <div>
-<<<<<<< HEAD
             <h1 className="text-4xl md:text-5xl font-black text-white mb-2">Dashboard</h1>
             <p className="text-gray-300 text-lg">Welcome back! Here's your financial overview</p>
-=======
-            <h1 className="text-4xl md:text-5xl font-black text-black mb-2">Dashboard</h1>
-            <p className="text-black text-lg">Welcome back! Here's your financial overview</p>
->>>>>>> 1653d24 (final)
           </div>
           <Mascot mood="happy" />
         </div>
 
-<<<<<<< HEAD
         {/* Budget Card - Main */}
         <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 border-0 shadow-2xl mb-8 p-8 text-white rounded-3xl">
-=======
-        {/* Budget Card - Main - Updated to Pantone Classic Blue gradient */}
-        <Card className="bg-gradient-to-br from-[#0F4C81] to-[#2E3A4B] border-0 shadow-2xl mb-8 p-8 text-white rounded-3xl">
->>>>>>> 1653d24 (final)
           <div className="mb-6">
             <p className="text-lg opacity-90 capitalize">{timeframe} Budget</p>
             <h2 className="text-5xl font-black mt-2">
@@ -295,15 +187,9 @@ export default function Dashboard() {
 
           {/* Progress Bar */}
           <div className="mb-6">
-<<<<<<< HEAD
             <div className="w-full h-4 bg-white/30 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white transition-all duration-500"
-=======
-            <div className="w-full h-4 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#FFBE98] transition-all duration-500 text-background bg-white"
->>>>>>> 1653d24 (final)
                 style={{ width: `${spendPercentage}%` }}
               ></div>
             </div>
@@ -320,13 +206,7 @@ export default function Dashboard() {
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 className={`capitalize ${
-<<<<<<< HEAD
                   timeframe === tf ? "bg-white text-blue-600 font-bold" : "bg-white/20 text-white hover:bg-white/30"
-=======
-                  timeframe === tf
-                    ? "bg-white text-[#0F4C81] font-bold hover:bg-white/90"
-                    : "bg-white/20 text-white hover:bg-white/30"
->>>>>>> 1653d24 (final)
                 }`}
               >
                 {tf}
@@ -335,7 +215,6 @@ export default function Dashboard() {
           </div>
         </Card>
 
-<<<<<<< HEAD
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-slate-800/50 border-2 border-cyan-500/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow hover:border-cyan-500/60 dark">
@@ -366,51 +245,14 @@ export default function Dashboard() {
             <p className="text-gray-400 text-sm mb-2">Saved This Month</p>
             <p className="text-3xl font-black text-pink-300">{formatRupees(stats.savings)}</p>
             <p className="text-xs text-blue-400 mt-2">{savingsPercentage.toFixed(1)}% of income saved</p>
-=======
-        {/* Stats Grid - Updated border colors to Pantone */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white border-2 border-secondary/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow hover:border-[#0F4C81]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-3xl">📈</span>
-              <ArrowUpRight className="w-6 h-6 text-green-600" />
-            </div>
-            <p className="text-sm mb-2 text-foreground">Total Income (Last 30 Days)</p>
-            <p className="text-3xl font-black text-black">{formatRupees(stats.totalIncome)}</p>
-            <p className="text-xs text-green-600 mt-2">↑ Last 30 days</p>
-          </Card>
-
-          <Card className="bg-white border-2 border-secondary/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow hover:border-[#0F4C81]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-3xl">💸</span>
-              <ArrowDownLeft className="w-6 h-6 text-red-600" />
-            </div>
-            <p className="text-sm mb-2 text-foreground">Total Expenses (Last 30 Days)</p>
-            <p className="text-3xl font-black text-black">{formatRupees(stats.totalExpenses)}</p>
-            <p className="text-xs text-red-600 mt-2">Last 30 days</p>
-          </Card>
-
-          <Card className="bg-white border-2 border-secondary/30 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow hover:border-[#0F4C81]">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-3xl">🎯</span>
-              <Zap className="w-6 h-6 text-yellow-600" />
-            </div>
-            <p className="text-sm mb-2 text-foreground">Saved (Last 30 Days)</p>
-            <p className="text-3xl font-black text-black">{formatRupees(stats.savings)}</p>
-            <p className="text-xs text-blue-600 mt-2">{savingsPercentage.toFixed(1)}% of income saved</p>
->>>>>>> 1653d24 (final)
           </Card>
         </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Pie Chart */}
-<<<<<<< HEAD
           <Card className="bg-slate-800/50 border-2 border-cyan-500/20 rounded-2xl p-6 shadow-lg dark leading-4">
             <h3 className="text-xl font-bold text-white mb-6">Spending by Category</h3>
-=======
-          <Card className="bg-white border-2 border-secondary/20 rounded-2xl p-6 shadow-lg leading-4">
-            <h3 className="text-xl font-bold text-black mb-6">Spending by Category</h3>
->>>>>>> 1653d24 (final)
             {stats.categoryData.length > 0 ? (
               <>
                 <ResponsiveContainer width="100%" height={300}>
@@ -436,11 +278,7 @@ export default function Dashboard() {
                   {stats.categoryData.map((cat, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
-<<<<<<< HEAD
                       <span className="text-sm text-gray-300">
-=======
-                      <span className="text-sm text-foreground">
->>>>>>> 1653d24 (final)
                         {cat.name}: {formatRupees(cat.value)}
                       </span>
                     </div>
@@ -448,16 +286,11 @@ export default function Dashboard() {
                 </div>
               </>
             ) : (
-<<<<<<< HEAD
               <div className="h-[300px] flex items-center justify-center text-gray-400">No expense data available</div>
-=======
-              <div className="h-[300px] flex items-center justify-center text-secondary">No expense data available</div>
->>>>>>> 1653d24 (final)
             )}
           </Card>
 
           {/* Line Chart */}
-<<<<<<< HEAD
           <Card className="bg-slate-800/50 border-2 border-purple-500/20 rounded-2xl p-6 shadow-lg dark">
             <h3 className="text-xl font-bold text-white mb-6">Spending Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -465,28 +298,13 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#404060" />
                 <XAxis dataKey="name" stroke="#999" />
                 <YAxis stroke="#999" />
-=======
-          <Card className="bg-white border-2 border-secondary/20 rounded-2xl p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-black mb-6">Spending Trend</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats.weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="name" stroke="#666" />
-                <YAxis stroke="#666" />
->>>>>>> 1653d24 (final)
                 <Tooltip formatter={(value) => formatRupees(value as number)} />
                 <Line
                   type="monotone"
                   dataKey="amount"
-<<<<<<< HEAD
                   stroke="#ff6b9d"
                   strokeWidth={3}
                   dot={{ fill: "#ff6b9d", r: 6 }}
-=======
-                  stroke="#0F4C81"
-                  strokeWidth={3}
-                  dot={{ fill: "#0F4C81", r: 6 }}
->>>>>>> 1653d24 (final)
                   activeDot={{ r: 8 }}
                 />
               </LineChart>
@@ -497,15 +315,9 @@ export default function Dashboard() {
         {/* Subscriptions Tracker & Recent Transactions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Subscriptions Tracker Card */}
-<<<<<<< HEAD
           <Card className="lg:col-span-1 bg-slate-800/50 border-2 border-green-500/20 rounded-2xl p-6 shadow-lg dark">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Subscriptions</h3>
-=======
-          <Card className="lg:col-span-1 bg-white border-2 border-green-500/20 rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-black">Subscriptions</h3>
->>>>>>> 1653d24 (final)
               <span className="text-2xl">📦</span>
             </div>
             {subscriptions.length > 0 ? (
@@ -514,17 +326,12 @@ export default function Dashboard() {
                   {subscriptions.map((sub) => (
                     <div
                       key={sub.id}
-<<<<<<< HEAD
                       className="bg-slate-700/50 rounded-xl p-4 border border-slate-600/50 hover:bg-slate-700 transition-colors"
-=======
-                      className="bg-gray-50 rounded-xl p-4 border border-secondary/30 hover:bg-gray-100 transition-colors"
->>>>>>> 1653d24 (final)
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{sub.icon}</span>
                           <div>
-<<<<<<< HEAD
                             <p className="font-bold text-white text-sm">{sub.name}</p>
                             <p className="text-xs text-gray-400">Renews {sub.renewalDate}</p>
                           </div>
@@ -532,20 +339,10 @@ export default function Dashboard() {
                         <button
                           onClick={() => removeSubscription(sub.id)}
                           className="text-red-400 hover:text-red-300 transition-colors"
-=======
-                            <p className="font-bold text-black text-sm">{sub.name}</p>
-                            <p className="text-xs text-foreground">Renews {sub.renewal_date}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveSubscription(sub.id)}
-                          className="text-red-600 hover:text-red-700 transition-colors"
->>>>>>> 1653d24 (final)
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-<<<<<<< HEAD
                       <p className="text-cyan-300 font-bold text-sm">{formatRupees(sub.amount)}/month</p>
                     </div>
                   ))}
@@ -553,28 +350,14 @@ export default function Dashboard() {
                 <div className="text-sm bg-gradient-to-r from-green-500/10 to-cyan-500/10 rounded-lg p-3 border border-green-500/20">
                   <p className="text-green-300 font-bold mb-1">Monthly Subscriptions</p>
                   <p className="text-white font-bold">
-=======
-                      <p className="text-primary font-bold text-sm">{formatRupees(sub.amount)}/month</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-sm rounded-lg p-3 border border-green-200 text-chart-4 bg-muted">
-                  <p className="font-bold mb-1 text-sidebar-accent-foreground">Monthly Subscriptions</p>
-                  <p className="font-bold text-primary">
->>>>>>> 1653d24 (final)
                     {formatRupees(subscriptions.reduce((sum, s) => sum + s.amount, 0))}
                   </p>
                 </div>
               </>
             ) : (
               <div className="text-center py-8">
-<<<<<<< HEAD
                 <p className="text-gray-400 text-sm mb-4">No subscriptions added yet</p>
                 <p className="text-xs text-gray-500">
-=======
-                <p className="text-secondary text-sm mb-4">No subscriptions added yet</p>
-                <p className="text-xs text-secondary/70">
->>>>>>> 1653d24 (final)
                   Add your subscriptions from the budget setup or settings to track them here.
                 </p>
               </div>
@@ -582,59 +365,36 @@ export default function Dashboard() {
           </Card>
 
           {/* Recent Transactions */}
-<<<<<<< HEAD
           <Card className="lg:col-span-2 bg-slate-800/50 border-2 border-pink-500/20 rounded-2xl p-6 shadow-lg dark">
             <h3 className="text-xl font-bold text-white mb-6">Recent Transactions</h3>
-=======
-          <Card className="lg:col-span-2 bg-white border-2 border-secondary/20 rounded-2xl p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-black mb-6">Recent Transactions</h3>
->>>>>>> 1653d24 (final)
             <div className="space-y-4">
               {stats.recentTransactions.length > 0 ? (
                 stats.recentTransactions.map((tx) => (
                   <div
                     key={tx.id}
-<<<<<<< HEAD
                     className="flex items-center justify-between p-4 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors border border-slate-600/50"
-=======
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-secondary/30"
->>>>>>> 1653d24 (final)
                   >
                     <div className="flex items-center gap-4">
                       <span className="text-2xl">{tx.icon}</span>
                       <div>
-<<<<<<< HEAD
                         <p className="font-bold text-white">{tx.name}</p>
                         <p className="text-sm text-gray-400">
-=======
-                        <p className="font-bold text-black">{tx.name}</p>
-                        <p className="text-sm text-foreground">
->>>>>>> 1653d24 (final)
                           {tx.category} • {tx.time}
                         </p>
                       </div>
                     </div>
-<<<<<<< HEAD
                     <p className={`font-black text-lg ${tx.amount > 0 ? "text-green-400" : "text-gray-300"}`}>
-=======
-                    <p className={`font-black text-lg ${tx.amount > 0 ? "text-green-600" : "text-black"}`}>
->>>>>>> 1653d24 (final)
                       {tx.amount > 0 ? "+" : ""} {formatRupees(Math.abs(tx.amount))}
                     </p>
                   </div>
                 ))
               ) : (
-<<<<<<< HEAD
                 <div className="text-center text-gray-400 py-8">No transactions yet</div>
-=======
-                <div className="text-center text-secondary py-8">No transactions yet</div>
->>>>>>> 1653d24 (final)
               )}
             </div>
           </Card>
         </div>
 
-<<<<<<< HEAD
         {/* AI Insights */}
         <Card className="bg-gradient-to-br from-orange-500/20 via-yellow-500/10 to-amber-600/20 border-2 border-orange-500/50 rounded-2xl p-6 shadow-lg dark">
           <div className="flex items-start gap-3 mb-6">
@@ -646,47 +406,22 @@ export default function Dashboard() {
               <div className="bg-slate-800/60 rounded-lg p-4 border border-orange-500/20">
                 <p className="text-sm font-bold text-yellow-300 mb-2">💡 Quick Tip</p>
                 <p className="text-sm text-gray-300">
-=======
-        {/* AI Insights - Updated to Pantone colors */}
-        <Card className="bg-[#F0F5FA] border-2 border-[#91A8D0] rounded-2xl p-6 shadow-lg">
-          <div className="flex items-start gap-3 mb-6">
-            <span className="text-3xl">💡</span>
-            <h3 className="text-lg font-bold text-black">Smart Insights</h3>
-          </div>
-          <div className="space-y-4">
-            {stats.categoryData.length > 0 && (
-              <div className="bg-white rounded-lg p-4 border border-[#91A8D0]">
-                <p className="text-sm font-bold text-[#0F4C81] mb-2">💡 Quick Tip</p>
-                <p className="text-sm text-black">
->>>>>>> 1653d24 (final)
                   Your {stats.categoryData[0].name} spending is {formatRupees(stats.categoryData[0].value)} this month.
                   Consider reviewing this category!
                 </p>
               </div>
             )}
             {savingsPercentage > 20 && (
-<<<<<<< HEAD
               <div className="bg-slate-800/60 rounded-lg p-4 border border-orange-500/20">
                 <p className="text-sm font-bold text-green-300 mb-2">🎉 Achievement</p>
                 <p className="text-sm text-gray-300">
-=======
-              <div className="bg-white rounded-lg p-4 border border-[#91A8D0]">
-                <p className="text-sm font-bold text-green-600 mb-2">🎉 Achievement</p>
-                <p className="text-sm text-black">
->>>>>>> 1653d24 (final)
                   Great job! You're saving {savingsPercentage.toFixed(1)}% of your income this month!
                 </p>
               </div>
             )}
-<<<<<<< HEAD
             <div className="bg-slate-800/60 rounded-lg p-4 border border-orange-500/20">
               <p className="text-sm font-bold text-cyan-300 mb-2">🔔 Alert</p>
               <p className="text-sm text-gray-300">
-=======
-            <div className="bg-white rounded-lg p-4 border border-[#91A8D0]">
-              <p className="text-sm font-bold text-[#0F4C81] mb-2">🔔 Alert</p>
-              <p className="text-sm text-black">
->>>>>>> 1653d24 (final)
                 Your subscriptions total {formatRupees(subscriptions.reduce((sum, s) => sum + s.amount, 0))}/month.
                 Consider reviewing unused services.
               </p>
